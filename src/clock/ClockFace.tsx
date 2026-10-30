@@ -201,8 +201,9 @@ export function ClockFace({
           <stop offset="80%" stopColor="#ffffff" />
           <stop offset="100%" stopColor="#eceaee" />
         </radialGradient>
-        <filter id="handShadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0.012" dy="0.02" stdDeviation="0.012" floodColor="#6b4a55" floodOpacity="0.35" />
+        {/* In photo pixels: iOS Safari drops a filter sized in tiny units inside a scaled group. */}
+        <filter id="handShadow" filterUnits="userSpaceOnUse" x={0} y={0} width={1000} height={1000}>
+          <feDropShadow dx={0.012 * R} dy={0.02 * R} stdDeviation={0.012 * R} floodColor="#6b4a55" floodOpacity="0.35" />
         </filter>
       </defs>
 
@@ -223,7 +224,6 @@ export function ClockFace({
             opacity={0.45 * helpers.hourSector}
           />
         )}
-
         {/* Minute track ticks */}
         {Array.from({ length: 60 }, (_, i) =>
           i % 5 === 0 ? null : (
@@ -289,8 +289,9 @@ export function ClockFace({
             <path d={MINUTE_PATH} transform={`rotate(${minuteAngleFromMinutes(ghost)})`} />
           </g>
         )}
-
-        <g filter="url(#handShadow)">
+      </g>
+      <g filter="url(#handShadow)">
+        <g transform={`translate(${cal.cx} ${cal.cy}) scale(${R})`}>
           <g transform={`rotate(${hourA})`} className={highlightClass(highlight, 'hour')}>
             <path d={HOUR_PATH} className="hand-glow" />
             <path d={HOUR_PATH} fill={HAND_PINK} stroke={HAND_EDGE} strokeWidth={0.01} strokeLinejoin="round" />
