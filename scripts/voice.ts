@@ -17,10 +17,13 @@ import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { recordables as allLines, type Line } from '../src/voice/lines';
+import { numberClips, recordables, type Line } from '../src/voice/lines';
 import { alignTranscript, cutAtLongPauses, cutToFit, parseNumbered, parseSilences, sameWords } from './split';
 
 const PAUSE_TAG = '<long pause>';
+
+/** Every clip to record: the phrases, then the number words times are made from. */
+const allLines = () => [...recordables(), ...numberClips()];
 
 const ROOT = resolve(__dirname, '..');
 let OUT = join(ROOT, 'public/voice');
@@ -38,6 +41,7 @@ function styleFor(id: string): string {
   const base = 'Warm, gentle and cheerful, like a kind teacher talking to a six-year-old. Clear and unhurried.';
   if (id.startsWith('praise-') || id.startsWith('ev-levelup-')) return 'Delighted and excited, celebrating with a six-year-old. Warm and bright.';
   if (id.startsWith('time-')) return 'Clear and friendly, saying a time to a young child.';
+  if (id.startsWith('num-')) return 'Clear and friendly, reading out one number word on a clock to a young child. Even, level tone, as if more words follow.';
   return base;
 }
 

@@ -1,7 +1,7 @@
-// Read-aloud. Words are recorded Gemini clips in public/voice/ (made with
-// scripts/voice.ts); numbers and times — the [bracketed] parts of a line — are
-// said by the device's own voice (Australian if available), so they're always
-// right. A phrase that hasn't been recorded yet also falls back to the device voice.
+// Read-aloud. Everything is recorded Gemini clips in public/voice/ (made with
+// scripts/voice.ts): phrases, plus number words that times are put together
+// from. Anything not recorded yet falls back to the device's own voice, which
+// iOS mutes in silent mode, so clips are the main path.
 
 import { linesText, plain, segments, type Line } from './voice/lines';
 
@@ -12,6 +12,7 @@ interface Manifest {
 
 const BASE = `${import.meta.env.BASE_URL}voice/`;
 const GAP_MS = 60; // pause between the parts of one sentence
+const WORD_GAP_MS = 20; // between the words of a number ("seven" · "twenty-two")
 
 let enabled = true;
 let last: Line[] = [];
@@ -163,12 +164,20 @@ export async function speak(lines: Line | Line[]): Promise<void> {
   await manifestReady;
   const parts = seq.flatMap(segments);
   // Start fetching every clip at once so there are no gaps between them.
-  const loads = parts.map((p) => (p.device ? Promise.resolve(null) : loadClip(p.clip!)));
+  // A number plays from its word clips only if every word has one; otherwise the device says it all.
+  const loads = parts.map((p): Promise<AudioBuffer[] | null> => {
+    const clips = p.device ? (p.words && p.words.every((x) => hasClip(x.clip)) ? p.words.map((x) => x.clip) : null) : [p.clip!];
+    if (!clips) return Promise.resolve(null);
+    return Promise.all(clips.map(loadClip)).then((bufs) => (bufs.every(Boolean) ? (bufs as AudioBuffer[]) : null));
+  });
   for (let i = 0; i < parts.length; i++) {
     if (gen !== generation) return;
-    const buf = await loads[i];
+    const bufs = await loads[i];
     if (gen !== generation) return;
-    if (buf) await playBuffer(buf, gen);
+    if (bufs) for (let k = 0; k < bufs.length; k++) {
+      await playBuffer(bufs[k], gen);
+      if (k < bufs.length - 1) await new Promise((r) => setTimeout(r, WORD_GAP_MS));
+    }
     else await deviceSay(plain(parts[i].text).replace(/…$/, ''));
     if (i < parts.length - 1) await new Promise((r) => setTimeout(r, GAP_MS));
   }

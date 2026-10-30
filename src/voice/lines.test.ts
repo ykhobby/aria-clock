@@ -4,7 +4,7 @@ import { makeQuestion } from '../learn/engine';
 import { explainAmpm, explainCount5, explainDetective, explainMatch, explainMeetHand, explainMeetNumber, explainPlus, explainRead, explainSet, explainType } from '../learn/explain';
 import { LEVELS } from '../learn/levels';
 import { newProgress } from '../store';
-import { allLines, recordables, segments, V, type Line } from './lines';
+import { allLines, numberClips, numberWords, recordables, segments, V, type Line } from './lines';
 
 const catalogue = new Map(allLines().map((l) => [l.id, l.text]));
 
@@ -21,6 +21,15 @@ describe('voice line catalogue', () => {
     for (const r of recordables()) expect(r.text, r.text).not.toMatch(NUM);
     // and every time a sentence includes is spoken by the device voice
     for (const s of segments(V.itsTime(9, 55))) if (s.device) expect(s.text).toBe('five to ten');
+  });
+
+  it('says every number and time from recorded number words', () => {
+    for (const l of allLines()) for (const s of segments(l)) if (s.device) expect(s.words, s.text).toBeTruthy();
+    expect(numberWords('twenty to eight')).toEqual(['twenty', 'to eight']);
+    expect(numberWords('quarter to eight')).toEqual(['quarter to', 'eight']);
+    expect(numberWords('seven oh five')).toEqual(['seven', 'oh five']);
+    expect(numberWords('Twenty-five minutes')).toEqual(['twenty-five', 'minutes']);
+    expect(numberClips().length).toBeLessThan(100);
   });
 
   it('needs only a couple of hundred recordings', () => {

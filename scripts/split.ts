@@ -91,17 +91,21 @@ const NUMBER_WORDS = [
   'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve',
   'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty',
 ];
-const tens = (n: number) => (n <= 20 ? NUMBER_WORDS[n] : `twenty ${NUMBER_WORDS[n - 20]}`);
+const TENS_WORDS = ['', '', 'twenty', 'thirty', 'forty', 'fifty'];
+const tens = (n: number) => (n <= 20 ? NUMBER_WORDS[n] : `${TENS_WORDS[Math.floor(n / 10)]}${n % 10 ? ` ${NUMBER_WORDS[n % 10]}` : ''}`);
 
 /** Words only, lower case, digits spelled out ("1/4 past 3" → "quarter past three"). */
 export function normWords(s: string): string {
   return s
     .replace(/1\/4/g, 'quarter')
     .replace(/1\/2/g, 'half')
-    .replace(/\d+/g, (n) => (Number(n) < 30 ? tens(Number(n)) : n))
+    .replace(/\d+/g, (n) => (Number(n) < 60 ? tens(Number(n)) : n))
     .toLowerCase()
     .replace(/[’']/g, '')
     .replace(/[^a-z]+/g, ' ')
+    .replace(/\b(zero|o)\b/g, 'oh')
+    // "to eight" is often written down as "2 8" or "two eight"
+    .replace(/\b(two|too)\b/g, 'to')
     .trim();
 }
 

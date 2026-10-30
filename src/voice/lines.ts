@@ -1,8 +1,8 @@
 // Everything the app says. Each line is a sentence; the parts in [brackets]
-// (numbers and times) are said by the device's own voice, which always gets
-// them right. Everything else is a recorded clip in the Gemini voice, made
-// once by scripts/voice.ts. Identical wording shares one clip, so the whole
-// app needs only a couple of hundred short recordings.
+// are numbers and times. Phrases are recorded clips in the Gemini voice, made
+// once by scripts/voice.ts, and identical wording shares one clip. Numbers and
+// times are put together from a small set of recorded number words ("seven" +
+// "twenty-two"), with the device's own voice as a backup if a word is missing.
 
 import { LEVELS } from '../learn/levels';
 import { LIFE_AMPM, LIFE_SET } from '../learn/life';
@@ -16,10 +16,12 @@ export interface Line {
 
 export interface Segment {
   text: string;
-  /** Said by the device voice (numbers and times). */
+  /** A number or time: said word by word from number clips, or by the device voice. */
   device: boolean;
-  /** Clip id for recorded segments. */
+  /** Clip id for recorded phrases. */
   clip?: string;
+  /** For numbers and times: the number clips that say it, in order. */
+  words?: { text: string; clip: string }[];
 }
 
 const line = (id: string, text: string): Line => ({ id, text });
@@ -136,14 +138,52 @@ export function clipId(text: string): string {
   return `${slug}-${h.toString(36)}`;
 }
 
-/** Split a line into recorded phrases and device-voice numbers. A phrase that
+// ---- number words --------------------------------------------------------
+
+/** The words every number and time is made of. "to" and "oh" are recorded with
+ *  the number after them, so they're never a lone word that sounds like "two" or "O". */
+export const NUMBER_VOCAB: string[] = [
+  ...Array.from({ length: 59 }, (_, i) => w(i + 1)),
+  ...HOURS.map((n) => `to ${w(n)}`),
+  ...Array.from({ length: 9 }, (_, i) => `oh ${w(i + 1)}`),
+  "o'clock",
+  'past',
+  'half past',
+  'quarter past',
+  'quarter to',
+  'hour',
+  'minute',
+  'minutes',
+];
+const VOCAB = new Set(NUMBER_VOCAB);
+export const numberClipId = (word: string) => `num-${clipId(word)}`;
+
+/** Split a number or time into vocabulary words, longest match first. Null if
+ *  any part isn't in the vocabulary (then the device voice says it all). */
+export function numberWords(text: string): string[] | null {
+  const tokens = text.toLowerCase().replace(/[.,!?]/g, '').split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  for (let i = 0; i < tokens.length; ) {
+    const two = `${tokens[i]} ${tokens[i + 1]}`;
+    if (i + 1 < tokens.length && VOCAB.has(two)) {
+      out.push(two);
+      i += 2;
+    } else if (VOCAB.has(tokens[i])) out.push(tokens[i++]);
+    else return null;
+  }
+  return out;
+}
+
+/** Split a line into recorded phrases and numbers. A phrase that
  *  runs on into a number is recorded with a trailing "…" so it sounds unfinished. */
 export function segments(l: Line): Segment[] {
   const out: Segment[] = [];
   const parts = l.text.split(/(\[[^\]]*\])/).filter((p) => p !== '');
   parts.forEach((p, i) => {
     if (p.startsWith('[')) {
-      out.push({ text: p.slice(1, -1), device: true });
+      const text = p.slice(1, -1);
+      const words = numberWords(text)?.map((t) => ({ text: t, clip: numberClipId(t) }));
+      out.push({ text, device: true, words });
       return;
     }
     // Punctuation left over after a number (the "." in "…[ten].") has nothing to record.
@@ -187,6 +227,11 @@ export function recordables(): Line[] {
   const seen = new Map<string, Line>();
   for (const l of allLines()) for (const s of segments(l)) if (!s.device && !seen.has(s.clip!)) seen.set(s.clip!, { id: s.clip!, text: s.text });
   return [...seen.values()];
+}
+
+/** The number words to record. */
+export function numberClips(): Line[] {
+  return NUMBER_VOCAB.map((t) => ({ id: numberClipId(t), text: t }));
 }
 
 /** Plain text of a sequence of lines (for timing and display). */
