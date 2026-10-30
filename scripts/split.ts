@@ -106,6 +106,9 @@ export function normWords(s: string): string {
     .replace(/\b(zero|o)\b/g, 'oh')
     // "to eight" is often written down as "2 8" or "two eight"
     .replace(/\b(two|too)\b/g, 'to')
+    // Same words, spelled differently by the listening model
+    .replace(/\barya\b/g, 'aria')
+    .replace(/\b(half|clock|woo|lolly) (way|work|hoo|land)\b/g, '$1$2')
     .trim();
 }
 
