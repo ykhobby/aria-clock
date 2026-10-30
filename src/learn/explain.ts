@@ -32,7 +32,8 @@ function minuteHint(m: number): Line {
 
 function hourHint(h: number, m: number): Line {
   if (m === 0) return V.shortPointsTo(h);
-  if (m > 30) return V.shortNearly(nextHour(h));
+  // "to" times (on a five) use the next hour; odd minutes are said digitally, with this hour.
+  if (m > 30 && m % 5 === 0) return V.shortNearly(nextHour(h));
   return V.shortJustPast(h);
 }
 

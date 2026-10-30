@@ -308,7 +308,7 @@ export const LEVELS: LevelDef[] = [
       { say: 'Now for the tiny marks!', minutes: T(3, 20), helpers: { fives: 1 } },
       { say: 'Each little mark is [one minute].', minutes: T(3, 21), highlight: 'minute' },
       { say: 'Find the last [five], then count on. [Twenty]… [twenty-one], [twenty-two].', minutes: T(3, 22), highlight: 'minute', helpers: { fives: 1 } },
-      { say: '[Twenty-two minutes past three]. We write it [three twenty-two].', highlight: 'both' },
+      { say: 'So it is [three twenty-two]. We say it just like we write it: [three twenty-two]!', highlight: 'both' },
     ],
   },
   {

@@ -20,19 +20,26 @@ export function nextHour(h: number): number {
   return h === 12 ? 1 : h + 1;
 }
 
-/** "3 o'clock", "half past 3", "quarter to 4", "20 past 3", "7 minutes to 4". */
+/** Minutes said the way people read a digital clock: "oh seven", "thirty-one". */
+function digitalMinutes(m: number): string {
+  return m < 10 ? `oh ${NUMBER_WORDS[m]}` : numberWord(m);
+}
+
+/** "3 o'clock", "half past 3", "quarter to 4", "20 past 3" for times on a five,
+ *  as schools teach them. Other minutes are said like a digital clock:
+ *  "3 thirty-one", "3 oh 7" (nobody says "twenty-nine minutes to four"). */
 export function timeToWords(h: number, m: number): string {
   if (m === 0) return `${h} o'clock`;
   if (m === 15) return `quarter past ${h}`;
   if (m === 30) return `half past ${h}`;
   if (m === 45) return `quarter to ${nextHour(h)}`;
-  if (m < 30) return m % 5 === 0 ? `${m} past ${h}` : `${m} ${m === 1 ? 'minute' : 'minutes'} past ${h}`;
-  const to = 60 - m;
-  return to % 5 === 0 ? `${to} to ${nextHour(h)}` : `${to} ${to === 1 ? 'minute' : 'minutes'} to ${nextHour(h)}`;
+  if (m % 5 !== 0) return m < 10 ? `${h} oh ${m}` : `${h} ${numberWord(m)}`;
+  return m < 30 ? `${m} past ${h}` : `${60 - m} to ${nextHour(h)}`;
 }
 
 /** Same phrase with numbers as words, so speech engines say "twenty past three". */
 export function timeToSpeech(h: number, m: number): string {
+  if (m % 5 !== 0) return `${NUMBER_WORDS[h]} ${digitalMinutes(m)}`;
   return timeToWords(h, m).replace(/\d+/g, (n) => NUMBER_WORDS[Number(n)] ?? n);
 }
 
