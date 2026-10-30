@@ -1,6 +1,8 @@
 // Grown-ups area: how Aria is doing, and settings.
 
+import { useState } from 'react';
 import { LEVELS } from '../learn/levels';
+import { testDeviceVoice } from '../speech';
 import { SKILLS, SKILL_LABELS } from '../learn/skills';
 import { timeToWords } from '../time/words';
 import { newProgress, newLevelProgress, type AnswerFormat, type Progress } from '../store';
@@ -15,6 +17,7 @@ interface Props {
 
 export function Parent({ progress, onProgress, onClose, onCalibrate, onClockCheck }: Props) {
   const s = progress.settings;
+  const [voiceTest, setVoiceTest] = useState('');
   const set = (patch: Partial<Progress['settings']>) => onProgress({ ...progress, settings: { ...s, ...patch } });
 
   const missed = Object.entries(progress.missed)
@@ -169,7 +172,16 @@ export function Parent({ progress, onProgress, onClose, onCalibrate, onClockChec
           <button aria-pressed={!s.voice} onClick={() => set({ voice: false })}>
             🔇 Off
           </button>
+          <button
+            onClick={() => {
+              setVoiceTest('Listening…');
+              testDeviceVoice().then(setVoiceTest);
+            }}
+          >
+            🔢 Test number voice
+          </button>
         </div>
+        {voiceTest && <pre className="voice-test">{voiceTest}</pre>}
       </section>
 
       <section className="card">

@@ -32,39 +32,73 @@ const manifestReady: Promise<void> = fetch(`${BASE}manifest.json`)
 
 // ---- built-in voice fallback ------------------------------------------
 let deviceVoice: SpeechSynthesisVoice | null = null;
+const isIOS = typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 function pickVoice() {
   if (typeof speechSynthesis === 'undefined') return;
-  const voices = speechSynthesis.getVoices();
+  // Only voices on the device: iOS stays silent, with no error, on one that isn't downloaded.
+  const voices = speechSynthesis.getVoices().filter((v) => v.localService);
+  const en = (re: RegExp) => voices.filter((v) => re.test(v.lang.replace('_', '-')));
   deviceVoice =
-    voices.find((v) => v.lang === 'en-AU' && /karen|catherine|female/i.test(v.name)) ??
-    voices.find((v) => v.lang.replace('_', '-') === 'en-AU') ??
-    voices.find((v) => v.lang === 'en-GB') ??
-    voices.find((v) => v.lang.startsWith('en')) ??
-    null;
+    en(/^en-AU$/).find((v) => /karen|catherine|female/i.test(v.name)) ?? en(/^en-AU$/)[0] ?? en(/^en-GB$/)[0] ?? en(/^en/)[0] ?? null;
 }
 if (typeof speechSynthesis !== 'undefined') {
   pickVoice();
   speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
 }
 
+// Safari can garbage-collect an utterance mid-sentence and never fire onend; keep a reference.
+export let current: SpeechSynthesisUtterance | null = null;
+const deviceLog: string[] = [];
+const log = (msg: string) => {
+  deviceLog.push(msg);
+  if (deviceLog.length > 12) deviceLog.shift();
+};
+
 function deviceSay(text: string): Promise<void> {
   if (typeof speechSynthesis === 'undefined') return Promise.resolve();
   return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(text);
-    if (deviceVoice) u.voice = deviceVoice;
-    u.lang = deviceVoice?.lang ?? 'en-AU';
+    // On iOS, let the system pick its own voice for the language: a voice object
+    // from getVoices() is sometimes one it can't actually use.
+    if (deviceVoice && !isIOS) u.voice = deviceVoice;
+    u.lang = deviceVoice?.lang.replace('_', '-') ?? 'en-AU';
     u.rate = 0.9;
     u.pitch = 1.1;
     // Some engines never fire onend; don't let a stuck voice freeze the app.
-    const safety = setTimeout(resolve, 1500 + text.split(/\s+/).length * 450);
+    const safety = setTimeout(() => {
+      log(`no end after ${text.split(/\s+/).length} words: "${text}"`);
+      resolve();
+    }, 1500 + text.split(/\s+/).length * 450);
     const done = () => {
       clearTimeout(safety);
       resolve();
     };
+    u.onstart = () => log(`start "${text}"`);
     u.onend = done;
-    u.onerror = done;
+    u.onerror = (e) => {
+      log(`error ${e.error} "${text}"`);
+      if (e.error === 'not-allowed') speechUnlocked = false; // try unlocking again on the next tap
+      done();
+    };
+    current = u;
+    // WebKit can wedge if it's paused or was just cancelled.
+    if (speechSynthesis.paused) speechSynthesis.resume();
     speechSynthesis.speak(u);
   });
+}
+
+/** For the grown-ups' voice test: say a number and report what the device did. */
+export async function testDeviceVoice(): Promise<string> {
+  if (typeof speechSynthesis === 'undefined') return 'This browser has no speech engine.';
+  deviceLog.length = 0;
+  unlockSpeech();
+  const all = speechSynthesis.getVoices();
+  await deviceSay('seven twenty-two');
+  return [
+    `${all.length} voices (${all.filter((v) => v.localService).length} on device)`,
+    `chosen: ${deviceVoice ? `${deviceVoice.name} (${deviceVoice.lang})` : 'none'}${isIOS ? ', iOS picks its own' : ''}`,
+    ...deviceLog,
+  ].join('\n');
 }
 
 // ---- recorded clips ---------------------------------------------------
@@ -153,7 +187,8 @@ export function stopSpeaking() {
     /* already stopped */
   }
   playing = null;
-  if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  if (typeof speechSynthesis !== 'undefined' && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
+  current = null;
 }
 
 /** iOS only allows sound after a tap: call this inside a tap handler. */
@@ -172,8 +207,11 @@ export function unlockSpeech() {
   }
   if (typeof speechSynthesis !== 'undefined' && !speechUnlocked) {
     speechUnlocked = true;
-    const u = new SpeechSynthesisUtterance(' ');
+    // iOS skips a blank utterance, so it doesn't count as the first one; say a real (silent) word.
+    const u = new SpeechSynthesisUtterance('hi');
     u.volume = 0;
+    u.rate = 2;
+    current = u;
     speechSynthesis.speak(u);
   }
 }

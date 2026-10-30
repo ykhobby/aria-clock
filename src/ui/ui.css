@@ -792,3 +792,12 @@ button.big {
   .skill { grid-template-columns: 110px 1fr 48px; }
   .sessions { font-size: 14px; }
 }
+
+.voice-test {
+  white-space: pre-wrap;
+  font-size: 14px;
+  background: #f7f2fa;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 10px 0 0;
+}
