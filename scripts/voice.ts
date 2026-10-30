@@ -18,7 +18,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { recordables as allLines, type Line } from '../src/voice/lines';
-import { alignTranscript, cutAtLongPauses, parseNumbered, parseSilences, sameWords } from './split';
+import { alignTranscript, cutAtLongPauses, cutToFit, parseNumbered, parseSilences, sameWords } from './split';
 
 const PAUSE_TAG = '<long pause>';
 
@@ -30,7 +30,7 @@ let MANIFEST = join(OUT, 'manifest.json');
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 const DEFAULT_MODEL = 'gemini-3.8-flash-tts';
 // Models that listen back to clips; each has its own daily quota, so move on when one runs out.
-const CHECK_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
+const CHECK_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
 let checkModel = 0;
 
 /** How each kind of line should sound. Accent comes from the voice itself. */
@@ -305,9 +305,11 @@ async function build(voice: string, model: string, batchSize: number, speakFn = 
   const todo: Line[] = [];
   for (const l of lines) {
     const hash = hashOf(l, voice, model);
+    // A clip made with another model (same voice and wording) is kept as it is.
+    const prevHash = prev ? hashOf(l, voice, prev.model) : '';
     const file = `${l.id}.m4a`;
     const recordedBefore = !prev?.hashes[l.id] && existsSync(join(CACHE, `${l.id}.wav`)) && existsSync(join(OUT, file));
-    if ((prev?.hashes[l.id] === hash || recordedBefore) && existsSync(join(OUT, file))) {
+    if ((prev?.hashes[l.id] === hash || prev?.hashes[l.id] === prevHash || recordedBefore) && existsSync(join(OUT, file))) {
       man.clips[l.id] = file;
       man.hashes[l.id] = hash;
     } else todo.push(l);
@@ -352,7 +354,9 @@ async function build(voice: string, model: string, batchSize: number, speakFn = 
       // Cut at the long pauses, listen to every piece on its own, and give
       // each script line the piece that says exactly it. Stray or broken
       // pieces are dropped; lines with no matching piece are recorded again.
-      const pieces = cutAtLongPauses(silencesIn(whole), batch.length, total);
+      // The Lite voice doesn't pause longer between lines, so cut it to fit the text.
+      const gaps = silencesIn(whole);
+      const pieces = model.includes('lite') ? cutToFit(gaps, texts, total) : cutAtLongPauses(gaps, batch.length, total);
       if (!pieces) {
         console.log(`\n  batch of ${batch.length} from ${batch[0].id} didn't split cleanly, retrying in halves`);
         const mid = Math.ceil(batch.length / 2);

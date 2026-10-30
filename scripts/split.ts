@@ -127,3 +127,52 @@ export function alignTranscript(heard: string[], expected: string[]): [number, n
   }
   return pairs;
 }
+
+/** Cut into exactly one piece per line, choosing the pauses that make every
+ *  piece's length best fit its text. For voices whose pauses between lines are
+ *  no longer than the ones inside a line. Null if there aren't enough pauses. */
+export function cutToFit(gaps: Gap[], texts: string[], total: number): Gap[] | null {
+  const n = texts.length;
+  const inner = gaps.filter((g) => g.start > 0.05 && g.end < total - 0.05);
+  if (inner.length < n - 1) return null;
+  if (n === 1) return [{ start: 0, end: total }];
+  const exp = texts.map(expectedSeconds);
+  const speech = total - inner.reduce((s, g) => s + g.end - g.start, 0);
+  const scale = Math.max(speech, 0.1) / exp.reduce((a, b) => a + b, 0);
+  const fit = (len: number, i: number) => Math.log(Math.max(len, 0.05) / (exp[i] * scale)) ** 2;
+  const G = inner.length;
+  // best[i][j]: cost of pieces 0..i with piece i ending at inner gap j.
+  const best = Array.from({ length: n - 1 }, () => new Array<number>(G).fill(Infinity));
+  const from = Array.from({ length: n - 1 }, () => new Array<number>(G).fill(-1));
+  const gapScore = (j: number) => inner[j].end - inner[j].start;
+  for (let j = 0; j < G; j++) best[0][j] = fit(inner[j].start, 0) - gapScore(j);
+  for (let i = 1; i < n - 1; i++)
+    for (let j = i; j < G; j++)
+      for (let k = i - 1; k < j; k++) {
+        const c = best[i - 1][k] + fit(inner[j].start - inner[k].end, i) - gapScore(j);
+        if (c < best[i][j]) {
+          best[i][j] = c;
+          from[i][j] = k;
+        }
+      }
+  let last = -1;
+  let cost = Infinity;
+  for (let j = n - 2; j < G; j++) {
+    const c = best[n - 2][j] + fit(total - inner[j].end, n - 1);
+    if (c < cost) {
+      cost = c;
+      last = j;
+    }
+  }
+  if (last < 0) return null;
+  const cuts: number[] = [];
+  for (let i = n - 2, j = last; i >= 0; j = from[i][j], i--) cuts.unshift(j);
+  const pieces: Gap[] = [];
+  let start = 0;
+  for (const j of cuts) {
+    pieces.push({ start, end: inner[j].start });
+    start = inner[j].end;
+  }
+  pieces.push({ start, end: total });
+  return pieces;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignTranscript, cutAtLongPauses, expectedSeconds, parseNumbered, parseSilences, piecesFit, sameWords, splitAtLongestGaps } from './split';
+import { alignTranscript, cutAtLongPauses, cutToFit, expectedSeconds, parseNumbered, parseSilences, piecesFit, sameWords, splitAtLongestGaps } from './split';
 
 describe('batch splitting', () => {
   it('parses ffmpeg silencedetect output', () => {
@@ -91,5 +91,20 @@ describe('batch splitting', () => {
 
   it('parses numbered transcript lines by number', () => {
     expect(parseNumbered('1. One o\'clock.\n3) Half past two\nnoise', 3)).toEqual(["One o'clock.", '', 'Half past two']);
+  });
+
+  it('cuts to fit line lengths when every pause is the same length', () => {
+    // "Hi." (short) · "This is a much longer line, with a comma." · "Bye."
+    const gaps = [
+      { start: 0.8, end: 1.3 },
+      { start: 2.5, end: 3.0 }, // the comma inside line 2
+      { start: 4.6, end: 5.1 },
+    ];
+    const pieces = cutToFit(gaps, ['Hi.', 'This is a much longer line, with a comma.', 'Bye.'], 6)!;
+    expect(pieces).toEqual([
+      { start: 0, end: 0.8 },
+      { start: 1.3, end: 4.6 },
+      { start: 5.1, end: 6 },
+    ]);
   });
 });
