@@ -158,13 +158,31 @@ export function stopSpeaking() {
 
 /** iOS only allows sound after a tap: call this inside a tap handler. */
 export function unlockSpeech() {
+  // Play like a video does, so the iPhone's silent switch doesn't mute it (Safari 16.4+).
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session && session.type !== 'playback') session.type = 'playback';
   const ac = audio();
-  if (ac && ac.state !== 'running') ac.resume().catch(() => undefined);
-  if (typeof speechSynthesis !== 'undefined') {
+  if (ac && ac.state !== 'running') {
+    ac.resume().catch(() => undefined);
+    // Some iOS versions only wake up once a sound has actually been started in the tap.
+    const src = ac.createBufferSource();
+    src.buffer = ac.createBuffer(1, 1, 22050);
+    src.connect(ac.destination);
+    src.start();
+  }
+  if (typeof speechSynthesis !== 'undefined' && !speechUnlocked) {
+    speechUnlocked = true;
     const u = new SpeechSynthesisUtterance(' ');
     u.volume = 0;
     speechSynthesis.speak(u);
   }
+}
+let speechUnlocked = false;
+
+// Unlock on every tap anywhere, not just on some buttons: the app can open
+// straight onto a lesson, and iOS locks the audio again after it's been in the background.
+if (typeof window !== 'undefined') {
+  for (const ev of ['touchend', 'click'] as const) window.addEventListener(ev, unlockSpeech, { capture: true, passive: true });
 }
 
 /** Speak, and also wait a readable minimum time (for when the voice is off). */
