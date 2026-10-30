@@ -1,0 +1,64 @@
+:root {
+  --bg: #fff6fb;
+  --bg-2: #f1ecff;
+  --ink: #3b2a4a;
+  --ink-soft: #7a6789;
+  --pink: #f7c5d3;
+  --pink-strong: #e8578a;
+  --lilac: #b9a6ff;
+  --mint: #9fe3cf;
+  --sun: #ffe08a;
+  --card: #ffffff;
+  --shadow: 0 6px 24px rgba(120, 70, 140, 0.15);
+  --radius: 24px;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+body {
+  background: radial-gradient(circle at 20% 0%, #ffe3f0 0, transparent 45%),
+    radial-gradient(circle at 100% 100%, #e6deff 0, transparent 50%), var(--bg);
+  color: var(--ink);
+  font-family: 'Arial Rounded MT Bold', 'Nunito', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 20px;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  min-height: 64px;
+  min-width: 64px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 120ms ease, background 120ms ease;
+}
+button:active {
+  transform: scale(0.95);
+}
+button.primary {
+  background: var(--pink-strong);
+  color: #fff;
+}
+button[aria-pressed='true'] {
+  background: var(--lilac);
+  color: #fff;
+}
+button:focus-visible {
+  outline: 4px solid var(--lilac);
+  outline-offset: 2px;
+}

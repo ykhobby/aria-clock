@@ -1,0 +1,75 @@
+.clock {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.clock--drag {
+  cursor: grab;
+}
+
+.clock .numeral {
+  font-family: 'Arial Rounded MT Bold', 'Nunito', 'Varela Round', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  paint-order: stroke;
+  stroke-linejoin: round;
+}
+.clock .track-num {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.clock .five-num {
+  font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  fill: #c2456c;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.clock .wordmark {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 600;
+  fill: #222;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.clock .helper {
+  transition: opacity 600ms ease;
+}
+.clock .ghost path {
+  fill: none;
+  stroke: #c2456c;
+  stroke-width: 0.012px;
+  stroke-dasharray: 0.03 0.025;
+  opacity: 0.8;
+}
+
+.clock .hand-glow {
+  fill: none;
+  stroke: #ffd84d;
+  stroke-width: 0.06px;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.clock .hand--highlight .hand-glow {
+  animation: hand-pulse 1.1s ease-in-out infinite;
+}
+@keyframes hand-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.95; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clock .hand--highlight .hand-glow { animation: none; opacity: 0.8; }
+}
+
+.clock .number-ring {
+  fill: rgba(255, 216, 77, 0.35);
+  stroke: #ffc400;
+  animation: hand-pulse 1.1s ease-in-out infinite;
+}

@@ -1,0 +1,83 @@
+.check {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(320px, 58dvh) auto;
+  gap: 16px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+.check__clock {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.check__clock .clock {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+.check__panel {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.check__panel h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--ink-soft);
+}
+.check .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.check__time {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'words speak' 'digital speak';
+  align-items: center;
+  gap: 4px 16px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+.check__words {
+  grid-area: words;
+  font-size: 36px;
+}
+.check__digital {
+  grid-area: digital;
+  font-size: 30px;
+  color: var(--pink-strong);
+}
+.check__speak {
+  grid-area: speak;
+  width: 80px;
+  height: 80px;
+  font-size: 34px;
+  padding: 0;
+}
+.check__debug {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+@media (orientation: landscape) {
+  .check {
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 1fr);
+    grid-template-rows: 1fr;
+    align-items: center;
+  }
+  .check__clock {
+    height: calc(100dvh - 32px);
+  }
+}
+
+.check__clock .clock {
+  border-radius: 32px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow);
+}

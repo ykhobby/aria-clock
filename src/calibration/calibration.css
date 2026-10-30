@@ -1,0 +1,65 @@
+.calib {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+.calib__head h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+.calib__head p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  max-width: 60ch;
+}
+.calib__stage {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.calib__stage > svg {
+  width: min(100%, 70dvh);
+  height: auto;
+  aspect-ratio: 1;
+  touch-action: none;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+.calib__controls {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.calib__nudge,
+.calib__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.calib__nudge button {
+  font-size: 26px;
+  width: 64px;
+}
+.calib__readout {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+@media (orientation: landscape) and (min-width: 900px) {
+  .calib {
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+  }
+  .calib__head {
+    grid-column: 1 / -1;
+  }
+  .calib__controls {
+    align-content: center;
+  }
+}

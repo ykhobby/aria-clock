@@ -1,0 +1,8 @@
+node_modules
+dist
+.DS_Store
+.env.local
+.voice-cache
+voice-samples
+.voice-cache-build.log
+.voice-verify.log
