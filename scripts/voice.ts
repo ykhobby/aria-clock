@@ -328,11 +328,14 @@ async function build(voice: string, model: string, batchSize: number, speakFn = 
   const save = () => writeFileSync(MANIFEST, JSON.stringify(man, null, 0));
   const status = () => process.stdout.write(`\r  recorded ${done}/${todoCount} · requests ${requests}${failed ? ` · failed ${failed}` : ''}   `);
 
-  const accept = (l: Line, wavPath: string) => {
+  const accept = (l: Line, wavPath: string): boolean => {
+    // A scrap of a cut can still be "heard" as a line; no real line is this short.
+    if (duration(wavPath) < 0.3) return false;
     encode(wavPath, join(OUT, `${l.id}.m4a`));
     man.clips[l.id] = `${l.id}.m4a`;
     man.hashes[l.id] = hashOf(l, voice, model);
     done++;
+    return true;
   };
 
   const retry: Line[] = [];
@@ -351,7 +354,7 @@ async function build(voice: string, model: string, batchSize: number, speakFn = 
     if (batch.length === 1) {
       const w = join(CACHE, `${batch[0].id}.wav`);
       writeFileSync(w, readFileSync(whole));
-      accept(batch[0], w);
+      if (!accept(batch[0], w)) failed++;
     } else {
       const total = duration(whole);
       const texts = batch.map((l) => l.text);
@@ -378,8 +381,7 @@ async function build(voice: string, model: string, batchSize: number, speakFn = 
       for (const [pi, li] of alignTranscript(heard, texts)) {
         const w = join(CACHE, `${batch[li].id}.wav`);
         writeFileSync(w, readFileSync(pieceWavs[pi]));
-        accept(batch[li], w);
-        matched.add(li);
+        if (accept(batch[li], w)) matched.add(li);
       }
       for (const w of pieceWavs) rmSync(w, { force: true });
       const strays = pieces.length - matched.size;
